@@ -8,17 +8,17 @@ from uuid import uuid4
 from bamboo.git import GitHelper, GitError
 
 
-class CheckTaskTestCase(TestCase):
+class CheckTaskMinorTestCase(TestCase):
     """ Проверяем функцию проверки возможности смержить задачу в минор
     """
+    path = "test_proj"
+    base_version = "1.0.0"
+    minor_version = "1.1.0"
+    base_branch = "master"
 
     def setUp(self):
         self.git = GitHelper("TEST")
-        self.path = "test_proj"
-
         self.init_repo()
-        self.version = "1.0.0"
-        self.minor = "1.1.0"
 
     def clean_dir(self):
         try:
@@ -54,7 +54,7 @@ class CheckTaskTestCase(TestCase):
 
     def check_task(self, task):
         print self.git.git("log --oneline --graph".split())
-        self.git.check_task(task, self.minor)
+        self.git.check_task(task, self.minor_version)
 
     def testTaskBeforeMinor(self):
         """ Все ок - можно мержить
@@ -66,11 +66,11 @@ class CheckTaskTestCase(TestCase):
         self.create_branch(branch)
         self.make_commit("branch commit")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
-        self.release(self.version)
-        self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        self.git.get_or_create_stable(self.minor_version)
 
         self.check_task(branch)
 
@@ -81,8 +81,8 @@ class CheckTaskTestCase(TestCase):
                 \______ task
         """
         branch = "task"
-        self.release(self.version)
-        self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        self.git.get_or_create_stable(self.minor_version)
         self.make_commit("minor commit")
 
         self.create_branch(branch)
@@ -97,8 +97,8 @@ class CheckTaskTestCase(TestCase):
               \_______  task
         """
         branch = "task"
-        self.release(self.version)
-        self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        self.git.get_or_create_stable(self.minor_version)
 
         self.create_branch(branch)
         self.git.checkout(branch)
@@ -116,14 +116,14 @@ class CheckTaskTestCase(TestCase):
         self.create_branch(branch)
         self.make_commit("branch commit")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
-        self.release(self.version)
-        self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        self.git.get_or_create_stable(self.minor_version)
 
-        self.git.checkout("master")
-        self.git.merge(branch, "master", "merge task to master")
+        self.git.checkout(self.base_branch)
+        self.git.merge(branch, self.base_branch, "merge task to master")
 
         self.check_task(branch)
 
@@ -137,17 +137,17 @@ class CheckTaskTestCase(TestCase):
         self.create_branch(branch)
         self.make_commit("branch commit")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
-        self.release(self.version)
-        self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        self.git.get_or_create_stable(self.minor_version)
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
         self.git.checkout(branch)
-        self.git.merge("master", branch, "back merge master to task")
+        self.git.merge(self.base_branch, branch, "back merge master to task")
 
         with self.assertRaises(GitError):
             self.check_task(branch)
@@ -159,10 +159,10 @@ class CheckTaskTestCase(TestCase):
             \__________ minor
         """
         branch = "task"
-        self.release(self.version)
-        self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        self.git.get_or_create_stable(self.minor_version)
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
         self.create_branch(branch)
@@ -183,22 +183,22 @@ class CheckTaskTestCase(TestCase):
         self.create_branch(branch1)
         self.make_commit("task commit")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
         branch2 = "task2"
         self.create_branch(branch2)
         self.make_commit("task2 commit")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
-        self.release(self.version)
-        minor_branch = self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        minor_branch = self.git.get_or_create_stable(self.minor_version)
         self.git.merge(branch1, minor_branch, "merge task1 to minor")
 
-        self.git.checkout("master")
-        self.git.merge(branch1, "master", "merge task1 to master")
+        self.git.checkout(self.base_branch)
+        self.git.merge(branch1, self.base_branch, "merge task1 to master")
 
         self.check_task(branch2)
 
@@ -214,15 +214,15 @@ class CheckTaskTestCase(TestCase):
         self.create_branch(branch1)
         self.make_commit("task commit")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
-        self.release(self.version)
-        minor_branch = self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        minor_branch = self.git.get_or_create_stable(self.minor_version)
         self.git.merge(branch1, minor_branch, "merge task1 to minor")
 
-        self.git.checkout("master")
-        self.git.merge(branch1, "master", "merge task1 to master")
+        self.git.checkout(self.base_branch)
+        self.git.merge(branch1, self.base_branch, "merge task1 to master")
 
         branch2 = "task2"
         self.create_branch(branch2)
@@ -242,16 +242,16 @@ class CheckTaskTestCase(TestCase):
         self.create_branch(branch1)
         self.make_commit("task commit")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit")
 
-        self.release(self.version)
-        minor_branch = self.git.get_or_create_stable(self.minor)
+        self.release(self.base_version)
+        minor_branch = self.git.get_or_create_stable(self.minor_version)
         self.git.merge(branch1, minor_branch, "merge task1 to minor")
 
-        self.git.checkout("master")
+        self.git.checkout(self.base_branch)
         self.make_commit("master commit 2")
-        self.git.merge(branch1, "master", "merge task1 to master")
+        self.git.merge(branch1, self.base_branch, "merge task1 to master")
 
         branch2 = "task2"
         self.create_branch(branch2)
@@ -259,6 +259,21 @@ class CheckTaskTestCase(TestCase):
 
         with self.assertRaises(GitError):
             self.check_task(branch2)
+
+
+class CheckTaskPatchTestCase(CheckTaskMinorTestCase):
+    """ Проверяем функцию проверки возможности смержить задачу в патч
+    """
+    # TODO дополнительные тесты на все три ветки (мастер/минор/патч)
+    path = "test_proj"
+    base_version = "1.1.0"
+    minor_version = "1.1.1"
+
+    def setUp(self):
+        self.git = GitHelper("TEST")
+        self.init_repo()
+        self.release(self.git.base_version(self.base_version))
+        self.base_branch = self.git.get_or_create_stable(self.base_version)
 
 
 if __name__ == '__main__':
