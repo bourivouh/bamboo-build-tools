@@ -38,4 +38,5 @@ setup(
         'jira',
         'six'
     ],
+    test_suite='runtests.runtests',
 )

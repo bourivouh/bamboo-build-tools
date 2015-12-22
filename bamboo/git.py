@@ -139,7 +139,7 @@ class GitHelper(BuildMixin):
         else:
             return "minor/%d.%d.x" % version[:2]
 
-    def get_or_create_stable(self, version, task, interactive=False):
+    def get_or_create_stable(self, version):
         """ Проверяет наличие или создает ветку, в которую будем собирать
         изменения
 
@@ -208,8 +208,9 @@ class GitHelper(BuildMixin):
         # (для миноров - это мастер, для патчей - это минор)
         parent_branch = self.get_stable_branch(self.base_version(version))
         stable_branch = self.get_stable_branch(version)
-        base = self.git(("merge-base", self.remote(branch), self.remote(parent_branch))).strip()
-        self.checkout(stable_branch)
+        for b in (branch, parent_branch, stable_branch):
+            self.checkout(b)
+        base = self.git(("merge-base", branch, parent_branch)).strip()
         try:
             self.git(("merge-base", "--is-ancestor", base, stable_branch))
         except GitError:
@@ -217,7 +218,7 @@ class GitHelper(BuildMixin):
                 "Cannot merge {feature} to {version} because unexpected "
                 "commits can be merged too. You can rebase {feature} branch on "
                 "the begining of {stable} or create new branch originated "
-                "from {stable} and cherry-pick nessesary commits to it.".format(
+                "from {stable} and cherry-pick necessary commits to it.".format(
                 feature=branch, version=version, stable=stable_branch))
 
     def merge_tasks(self, task_key, tasks, version):
@@ -226,7 +227,7 @@ class GitHelper(BuildMixin):
         if not tasks:
             raise ValueError('No tasks requested')
 
-        stable_branch = self.get_or_create_stable(version, task=task_key)
+        stable_branch = self.get_or_create_stable(version)
         commit_msg = '%s merge tasks %%s' % task_key
 
         for task in tasks:
