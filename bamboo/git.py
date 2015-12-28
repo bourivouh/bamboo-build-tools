@@ -211,6 +211,37 @@ class GitHelper(BuildMixin):
         for b in (branch, parent_branch, stable_branch):
             self.checkout(b)
         base = self.git(("merge-base", branch, parent_branch)).strip()
+        branch_head = self.git(("rev-parse", branch)).strip()
+
+        # Может быть ситуация, что ветка уже смежена в мастер (см. случай 5),
+        # поэтому наша обычная проверка с merge base не пройдет.
+        if base == branch_head:
+            # Ищем мерж коммит: это будет первый коммит в мастер, начиная от
+            # указателя на branch
+            parent_commits = self.git(("log", branch + ".." + parent_branch, "--ancestry-path", "--format=%H"))
+            # Но в логе этот коммит будет выведен последним
+            merge_commit = parent_commits.split()[-1]
+            # ищем комиты, которые мержились в этом коммите: одним из них будет
+            # головной коммит ветки branch, второй - искомый коммит из мастера
+            merge_branches = self.git(("show", merge_commit, "--format=%P")).split()
+            if len(merge_branches) != 2 or branch_head not in merge_branches:
+                # У нашего мержа должно быть ровно два родителя - один из
+                # мастера, второй из ветки. Если это не так, то у нас здесь
+                # octopus merge или ещё что-то странное.
+                raise GitError(
+                    "Cannot merge {feature} to {version} automatically "
+                    "because {feature} have already merged to {parent} by very "
+                    "strange way.".format(
+                        feature=branch, version=version, parent=parent_branch))
+
+            # убираем коммит ветки и остается только искомый коммит из
+            # мастера - последний коммит до мержа branch
+            merge_branches.pop(merge_branches.index(branch_head))
+            parent_before_merge = merge_branches[0]
+            # находим merge base ветки и последнего коммита до мержа ветки в
+            # мастер - с ним и будем сравнивать наш минор
+            base = self.git(("merge-base", branch, parent_before_merge)).strip()
+
         try:
             self.git(("merge-base", "--is-ancestor", base, stable_branch))
         except GitError:
